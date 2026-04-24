@@ -1,0 +1,9 @@
+cd api
+echo "node_modules
+.git
+.vscode
+local.settings.json
+*.md
+test
+tests
+__tests__" > .funcignore

@@ -1,0 +1,29 @@
+{
+  "name": "cajo-erp-api",
+  "version": "1.0.0",
+  "description": "Cajo ERP Azure Functions Backend",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "start": "func start",
+    "prestart": "npm run build"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0",
+    "mssql": "^10.0.4",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.7",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/mssql": "^9.1.4",
+    "@types/nodemailer": "^6.4.14",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.0.0",
+    "azure-functions-core-tools": "^4.0.0"
+  },
+  "main": "dist/{**/,}*.js"
+}

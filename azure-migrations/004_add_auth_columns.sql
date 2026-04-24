@@ -1,0 +1,15 @@
+-- Add auth columns needed by the custom JWT auth system
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'password_hash')
+    ALTER TABLE users ADD password_hash NVARCHAR(255) NULL;
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'refresh_token')
+    ALTER TABLE users ADD refresh_token NVARCHAR(500) NULL;
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME = 'last_sign_in')
+    ALTER TABLE users ADD last_sign_in DATETIME2 NULL;
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'messages' AND COLUMN_NAME = 'is_read')
+    ALTER TABLE messages ADD is_read BIT NOT NULL DEFAULT 0;
+
+PRINT 'Migration 004 completed - auth columns added.';
+GO
