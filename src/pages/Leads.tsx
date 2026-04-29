@@ -410,7 +410,7 @@ export default function Leads() {
     };
 
     if (showEditPanel && selectedLead) {
-      if (formData.lead_status === 'qualified') {
+      if (formData.lead_status.toLowerCase() === 'qualified') {
         const moved = await moveToProspects({ ...selectedLead, lead_status: formData.lead_status });
         if (moved) {
           setShowEditPanel(false);
