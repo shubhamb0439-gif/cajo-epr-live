@@ -311,6 +311,8 @@ export default function Leads() {
       prospect_status:  'demo_scheduled',
       prospect_notes:   lead.lead_notes || null,
       assigned_to:      lead.assigned_to,
+      prospect_source:  lead.lead_source || null,
+      prospect_value:   lead.lead_value  || null,
     } as any);
     if (insertError) {
       alert('Error moving to prospects: ' + insertError.message);
@@ -396,7 +398,14 @@ export default function Leads() {
 
     if (showEditPanel && selectedLead) {
       if (formData.lead_status.toLowerCase() === 'qualified') {
-        const moved = await moveToProspects({ ...selectedLead, lead_status: formData.lead_status });
+        const moved = await moveToProspects({
+          ...selectedLead,
+          lead_status:  formData.lead_status,
+          lead_source:  formData.lead_source  || null,
+          lead_value:   formData.lead_value ? parseFloat(formData.lead_value) : null,
+          lead_notes:   formData.lead_notes   || null,
+          assigned_to:  formData.assigned_to  || null,
+        });
         if (moved) {
           setShowEditPanel(false);
           loadLeads();

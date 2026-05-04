@@ -309,6 +309,9 @@ export default function Prospects() {
       email:            prospect.prospect_email || null,
       phone:            prospect.prospect_phone || null,
       notes:            prospect.prospect_notes || null,
+      customer_source:  prospect.prospect_source || null,
+      customer_value:   prospect.prospect_value  || null,
+      assigned_to:      prospect.assigned_to     || null,
     } as any);
     if (insertError) {
       alert('Error moving to customers: ' + insertError.message);
