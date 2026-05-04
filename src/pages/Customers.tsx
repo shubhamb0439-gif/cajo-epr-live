@@ -208,7 +208,7 @@ function CustomerForm({ formData, setFormData, onSubmit, onCancel, isEdit, custo
         >
           <option value="">Unassigned</option>
           {users.map(u => (
-            <option key={u.id} value={u.auth_user_id}>
+            <option key={u.id} value={u.id}>
               {u.name}
             </option>
           ))}
@@ -305,7 +305,7 @@ export default function Customers() {
       if (userIds.length > 0) {
         const { data: usersData } = await api.users.getAll();
 
-        const userMap = new Map(usersData?.map(u => [u.auth_user_id, u.name]));
+        const userMap = new Map(usersData?.map(u => [u.id, u.name]));
 
         const customersWithUsers = data.map(customer => ({
           ...customer,

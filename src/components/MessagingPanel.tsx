@@ -58,8 +58,7 @@ export default function MessagingPanel({ isOpen, onClose, onUnreadCountChange, u
 
   const fetchUsers = async () => {
     const { data } = await api.users.getAll();
-
-    if (data) setUsers(data);
+    if (data) setUsers(data.filter(u => u.id !== userProfile?.id));
   };
 
   const fetchMessages = async () => {
@@ -215,7 +214,14 @@ export default function MessagingPanel({ isOpen, onClose, onUnreadCountChange, u
             <div className="p-4">
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Select a user to message</h3>
               <div className="space-y-2">
-                {users.map((user) => {
+                {[...users]
+                  .sort((a, b) => {
+                    const aUnread = unreadCountsByUser[a.id] || 0;
+                    const bUnread = unreadCountsByUser[b.id] || 0;
+                    if (bUnread !== aUnread) return bUnread - aUnread;
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((user) => {
                   const unreadCount = unreadCountsByUser[user.id] || 0;
                   return (
                     <button

@@ -186,7 +186,7 @@ function ProspectForm({
         >
           <option value="">Unassigned</option>
           {users.map(u => (
-            <option key={u.id} value={u.auth_user_id}>
+            <option key={u.id} value={u.id}>
               {u.name}
             </option>
           ))}
@@ -272,7 +272,7 @@ export default function Prospects() {
       const userIds = [...new Set(data.map(p => p.assigned_to).filter(Boolean))];
       if (userIds.length > 0) {
         const { data: usersData } = await api.users.getAll();
-        const userMap = new Map(usersData?.map(u => [u.auth_user_id, u.name]));
+        const userMap = new Map(usersData?.map(u => [u.id, u.name]));
         const prospectsWithUsers = data.map(p => ({
           ...p,
           assigned_user: p.assigned_to ? { name: userMap.get(p.assigned_to) || 'Unknown' } : null,
@@ -386,6 +386,8 @@ export default function Prospects() {
       prospect_email:   formData.prospect_email.trim() || null,
       prospect_phone:   formData.prospect_phone.trim() || null,
       prospect_status:  formData.prospect_status,
+      prospect_source:  formData.prospect_source || null,
+      prospect_value:   formData.prospect_value ? parseFloat(formData.prospect_value) : null,
       prospect_notes:   formData.prospect_notes.trim() || null,
       assigned_to:      formData.assigned_to.trim() || null,
     };

@@ -75,17 +75,17 @@ export const SCHEMAS: Record<string, TableSchema> = {
     readonly: ['created_at','updated_at'],
   },
   customers: {
-    columns: ['id','customer_company','contact_name','email','phone','address','notes','status'],
+    columns: ['id','customer_company','contact_name','email','phone','address','notes','status','source','value','assigned_to'],
     aliases: {
       customer_name:   'contact_name',
       customer_email:  'email',
       customer_phone:  'phone',
       customer_notes:  'notes',
       customer_status: 'status',
-      // customer_position, customer_source, customer_value,
-      // assigned_to don't exist as columns -> silently dropped
+      customer_source: 'source',
+      customer_value:  'value',
     },
-    readonly: ['created_at','updated_at','customer_position','customer_source','customer_value','assigned_to'],
+    readonly: ['created_at','updated_at','customer_position'],
   },
   leads: {
     columns: ['id','company_name','contact_name','email','phone','source','status','industry','notes','assigned_to','lead_value'],
@@ -102,17 +102,18 @@ export const SCHEMAS: Record<string, TableSchema> = {
     readonly: ['created_at','updated_at'],
   },
   prospects: {
-    columns: ['id','company_name','contact_name','email','phone','status','notes','lead_id','assigned_to'],
+    columns: ['id','company_name','contact_name','email','phone','status','source','value','notes','lead_id','assigned_to'],
     aliases: {
-      prospect_name: 'contact_name',
-      prospect_email: 'email',
-      prospect_phone: 'phone',
-      prospect_company: 'company_name',
-      prospect_status: 'status',
-      prospect_notes: 'notes',
-      // prospect_position, prospect_source, prospect_value have no column -> dropped
+      prospect_name:     'contact_name',
+      prospect_email:    'email',
+      prospect_phone:    'phone',
+      prospect_company:  'company_name',
+      prospect_status:   'status',
+      prospect_source:   'source',
+      prospect_value:    'value',
+      prospect_notes:    'notes',
     },
-    readonly: ['created_at','updated_at','prospect_position','prospect_source','prospect_value'],
+    readonly: ['created_at','updated_at','prospect_position'],
   },
   devices: {
     columns: ['id','name','serial_number','model','customer_id','status','last_seen','uptime_seconds','notes'],

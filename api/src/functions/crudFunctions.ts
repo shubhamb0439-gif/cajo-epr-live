@@ -154,6 +154,8 @@ const prospectResponse = (r: any) => {
     prospect_phone:   r.phone ?? '',
     prospect_company: r.company_name ?? '',
     prospect_status:  r.status || 'new',
+    prospect_source:  r.source ?? '',
+    prospect_value:   r.value ?? null,
     prospect_notes:   r.notes ?? '',
   };
 };
@@ -172,8 +174,8 @@ const customerResponse = (r: any) => {
     customer_company:  r.customer_company ?? '',
     customer_position: '',
     customer_status:   r.status || 'active',
-    customer_source:   '',
-    customer_value:    0,
+    customer_source:   r.source ?? '',
+    customer_value:    r.value ?? null,
     customer_notes:    r.notes ?? '',
   };
 };
