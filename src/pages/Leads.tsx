@@ -177,7 +177,7 @@ function LeadForm({ formData, setFormData, onSubmit, onCancel, isEdit, leadStatu
         >
           <option value="">Unassigned</option>
           {users.map(u => (
-            <option key={u.id} value={u.auth_user_id}>
+            <option key={u.id} value={u.id}>
               {u.name}
             </option>
           ))}
@@ -266,7 +266,7 @@ export default function Leads() {
       const userIds = [...new Set(data.map(l => l.assigned_to).filter(Boolean))];
       if (userIds.length > 0) {
         const { data: usersData } = await api.users.getAll();
-        const userMap = new Map(usersData?.map(u => [u.auth_user_id, u.name]));
+        const userMap = new Map(usersData?.map(u => [u.id, u.name]));
         const leadsWithUsers = data.map(lead => ({
           ...lead,
           assigned_user: lead.assigned_to ? { name: userMap.get(lead.assigned_to) || 'Unknown' } : null,
@@ -383,13 +383,14 @@ export default function Leads() {
 
     const leadData = {
       lead_name:     formData.lead_name.trim() || null,
-      lead_company:  formData.lead_company.trim() || null,
+      lead_company:  formData.lead_company.trim(),           // empty string, not null — prevents auto-fill from name
       lead_email:    formData.lead_email.trim() || null,
       lead_phone:    formData.lead_phone.trim() || null,
       lead_status:   formData.lead_status,
       lead_source:   formData.lead_source || null,
       lead_position: formData.lead_position.trim() || null,
       lead_notes:    formData.lead_notes.trim() || null,
+      lead_value:    formData.lead_value ? parseFloat(formData.lead_value) : null,
       assigned_to:   formData.assigned_to.trim() || null,
     };
 

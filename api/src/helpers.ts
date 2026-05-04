@@ -88,22 +88,18 @@ export const SCHEMAS: Record<string, TableSchema> = {
     readonly: ['created_at','updated_at','customer_position','customer_source','customer_value','assigned_to'],
   },
   leads: {
-    columns: ['id','company_name','contact_name','email','phone','source','status','industry','notes','assigned_to'],
-    // Frontend uses lead_* prefixed field names (legacy Supabase schema).
-    // lead_name -> contact_name (person), lead_company -> company_name (which is NOT NULL).
-    // lead_position maps to industry for now (closest column we have), and
-    // lead_value has no home in this table -> dropped.
+    columns: ['id','company_name','contact_name','email','phone','source','status','industry','notes','assigned_to','lead_value'],
     aliases: {
-      lead_name: 'contact_name',
-      lead_email: 'email',
-      lead_phone: 'phone',
-      lead_company: 'company_name',
+      lead_name:     'contact_name',
+      lead_email:    'email',
+      lead_phone:    'phone',
+      lead_company:  'company_name',
       lead_position: 'industry',
-      lead_status: 'status',
-      lead_source: 'source',
-      lead_notes: 'notes',
+      lead_status:   'status',
+      lead_source:   'source',
+      lead_notes:    'notes',
     },
-    readonly: ['created_at','updated_at','lead_value'],
+    readonly: ['created_at','updated_at'],
   },
   prospects: {
     columns: ['id','company_name','contact_name','email','phone','status','notes','lead_id','assigned_to'],
@@ -320,8 +316,10 @@ export function preprocessBody(
   if (table === 'leads' || table === 'prospects') {
     const companyKey = table === 'leads' ? 'lead_company' : 'prospect_company';
     const nameKey    = table === 'leads' ? 'lead_name'    : 'prospect_name';
+    // company_name is NOT NULL in DB — use empty string (shows as '-' in UI) rather
+    // than copying the person's name when the user left it blank.
     if (b[companyKey] === null || b[companyKey] === undefined) {
-      b[companyKey] = b[nameKey] || 'Unknown';
+      b[companyKey] = '';
     }
     if (!b[nameKey] && !b[companyKey]) {
       return { body: b, error: `${table === 'leads' ? 'Lead' : 'Prospect'} name or company is required` };

@@ -28,26 +28,25 @@
   12. purchase_order_items
   13. customers
   14. leads
-  15. dropdown_types
-  16. dropdown_values
-  17. prospects
-  18. sales
-  19. sale_items
-  20. deliveries
-  21. delivery_items
-  22. devices
-  23. device_issue_types
-  24. tickets
-  25. ticket_messages
-  26. ticket_message_reads
-  27. messages
-  28. message_reads
-  29. activity_logs
-  30. help_categories
-  31. help_articles
-  32. system_requests
-  33. foreign_exchange_rates
-  34. assembly_files
+  15. dropdown_values
+  16. prospects
+  17. sales
+  18. sale_items
+  19. deliveries
+  20. delivery_items
+  21. devices
+  22. device_issue_types
+  23. tickets
+  24. ticket_messages
+  25. ticket_message_reads
+  26. messages
+  27. message_reads
+  28. activity_logs
+  29. help_categories
+  30. help_articles
+  31. system_requests
+  32. foreign_exchange_rates
+  33. assembly_files
   ============================================================
 */
 
@@ -106,7 +105,8 @@ CREATE TABLE inventory_items (
     CONSTRAINT FK_inventory_vendor FOREIGN KEY (vendor_id) REFERENCES vendors(id)
 );
 GO
-CREATE INDEX IX_inventory_vendor ON inventory_items(vendor_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_inventory_vendor' AND object_id = OBJECT_ID('inventory_items'))
+    CREATE INDEX IX_inventory_vendor ON inventory_items(vendor_id);
 GO
 
 -- ─── BOMS ────────────────────────────────────────────────────────────────────
@@ -122,7 +122,8 @@ CREATE TABLE boms (
     CONSTRAINT FK_bom_product FOREIGN KEY (finished_product_id) REFERENCES inventory_items(id)
 );
 GO
-CREATE INDEX IX_bom_product ON boms(finished_product_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_bom_product' AND object_id = OBJECT_ID('boms'))
+    CREATE INDEX IX_bom_product ON boms(finished_product_id);
 GO
 
 -- ─── BOM COMPONENTS ──────────────────────────────────────────────────────────
@@ -137,8 +138,10 @@ CREATE TABLE bom_components (
     CONSTRAINT FK_bomc_item FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id)
 );
 GO
-CREATE INDEX IX_bomc_bom  ON bom_components(bom_id);
-CREATE INDEX IX_bomc_item ON bom_components(inventory_item_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_bomc_bom' AND object_id = OBJECT_ID('bom_components'))
+    CREATE INDEX IX_bomc_bom  ON bom_components(bom_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_bomc_item' AND object_id = OBJECT_ID('bom_components'))
+    CREATE INDEX IX_bomc_item ON bom_components(inventory_item_id);
 GO
 
 -- ─── ASSEMBLIES ──────────────────────────────────────────────────────────────
@@ -154,8 +157,10 @@ CREATE TABLE assemblies (
     CONSTRAINT FK_assembly_user FOREIGN KEY (created_by) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_assembly_bom  ON assemblies(bom_id);
-CREATE INDEX IX_assembly_user ON assemblies(created_by);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_assembly_bom' AND object_id = OBJECT_ID('assemblies'))
+    CREATE INDEX IX_assembly_bom  ON assemblies(bom_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_assembly_user' AND object_id = OBJECT_ID('assemblies'))
+    CREATE INDEX IX_assembly_user ON assemblies(created_by);
 GO
 
 -- ─── ASSEMBLY UNITS ──────────────────────────────────────────────────────────
@@ -169,7 +174,8 @@ CREATE TABLE assembly_units (
     CONSTRAINT FK_aunit_assembly FOREIGN KEY (assembly_id) REFERENCES assemblies(id) ON DELETE CASCADE
 );
 GO
-CREATE INDEX IX_aunit_assembly ON assembly_units(assembly_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_aunit_assembly' AND object_id = OBJECT_ID('assembly_units'))
+    CREATE INDEX IX_aunit_assembly ON assembly_units(assembly_id);
 GO
 
 -- ─── ASSEMBLY COMPONENTS ─────────────────────────────────────────────────────
@@ -186,8 +192,10 @@ CREATE TABLE assembly_components (
     CONSTRAINT FK_acomp_item     FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id)
 );
 GO
-CREATE INDEX IX_acomp_assembly ON assembly_components(assembly_id);
-CREATE INDEX IX_acomp_item     ON assembly_components(inventory_item_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_acomp_assembly' AND object_id = OBJECT_ID('assembly_components'))
+    CREATE INDEX IX_acomp_assembly ON assembly_components(assembly_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_acomp_item' AND object_id = OBJECT_ID('assembly_components'))
+    CREATE INDEX IX_acomp_item     ON assembly_components(inventory_item_id);
 GO
 
 -- ─── PURCHASES ───────────────────────────────────────────────────────────────
@@ -206,7 +214,8 @@ CREATE TABLE purchases (
     CONSTRAINT FK_purchase_user   FOREIGN KEY (created_by) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_purchase_vendor ON purchases(vendor_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_purchase_vendor' AND object_id = OBJECT_ID('purchases'))
+    CREATE INDEX IX_purchase_vendor ON purchases(vendor_id);
 GO
 
 -- ─── PURCHASE ITEMS ──────────────────────────────────────────────────────────
@@ -226,8 +235,10 @@ CREATE TABLE purchase_items (
     CONSTRAINT FK_pi_item     FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id)
 );
 GO
-CREATE INDEX IX_pi_purchase ON purchase_items(purchase_id);
-CREATE INDEX IX_pi_item     ON purchase_items(inventory_item_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_pi_purchase' AND object_id = OBJECT_ID('purchase_items'))
+    CREATE INDEX IX_pi_purchase ON purchase_items(purchase_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_pi_item' AND object_id = OBJECT_ID('purchase_items'))
+    CREATE INDEX IX_pi_item     ON purchase_items(inventory_item_id);
 GO
 
 -- ─── PURCHASE ORDERS ─────────────────────────────────────────────────────────
@@ -247,7 +258,8 @@ CREATE TABLE purchase_orders (
     CONSTRAINT FK_po_user   FOREIGN KEY (created_by) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_po_vendor ON purchase_orders(vendor_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_po_vendor' AND object_id = OBJECT_ID('purchase_orders'))
+    CREATE INDEX IX_po_vendor ON purchase_orders(vendor_id);
 GO
 
 -- ─── PURCHASE ORDER ITEMS ─────────────────────────────────────────────────────
@@ -263,8 +275,10 @@ CREATE TABLE purchase_order_items (
     CONSTRAINT FK_poi_item FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id)
 );
 GO
-CREATE INDEX IX_poi_po   ON purchase_order_items(purchase_order_id);
-CREATE INDEX IX_poi_item ON purchase_order_items(inventory_item_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_poi_po' AND object_id = OBJECT_ID('purchase_order_items'))
+    CREATE INDEX IX_poi_po   ON purchase_order_items(purchase_order_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_poi_item' AND object_id = OBJECT_ID('purchase_order_items'))
+    CREATE INDEX IX_poi_item ON purchase_order_items(inventory_item_id);
 GO
 
 -- ─── CUSTOMERS ───────────────────────────────────────────────────────────────
@@ -290,29 +304,24 @@ IF NOT EXISTS (
 ALTER TABLE users
     ADD CONSTRAINT FK_users_customer FOREIGN KEY (customer_id) REFERENCES customers(id);
 GO
-CREATE INDEX IX_users_customer ON users(customer_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_users_customer' AND object_id = OBJECT_ID('users'))
+    CREATE INDEX IX_users_customer ON users(customer_id);
 GO
 
--- ─── DROPDOWN TYPES & VALUES ──────────────────────────────────────────────────
-IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'dropdown_types')
-CREATE TABLE dropdown_types (
+-- ─── DROPDOWN VALUES ─────────────────────────────────────────────────────────
+-- Stores typed key-value dropdown options. drop_type is the category name
+-- (e.g. 'lead_source'), drop_value is the individual option.
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'dropdown_values')
+CREATE TABLE dropdown_values (
     id         UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    name       NVARCHAR(100)     NOT NULL UNIQUE,
+    drop_type  NVARCHAR(100)     NOT NULL,
+    drop_value NVARCHAR(255)     NOT NULL,
+    sort_order INT               NOT NULL DEFAULT 0,
     created_at DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME()
 );
 GO
-
-IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'dropdown_values')
-CREATE TABLE dropdown_values (
-    id              UNIQUEIDENTIFIER  NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    dropdown_type_id UNIQUEIDENTIFIER NOT NULL,
-    value           NVARCHAR(255)     NOT NULL,
-    sort_order      INT               NOT NULL DEFAULT 0,
-    created_at      DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT FK_dv_type FOREIGN KEY (dropdown_type_id) REFERENCES dropdown_types(id) ON DELETE CASCADE
-);
-GO
-CREATE INDEX IX_dv_type ON dropdown_values(dropdown_type_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_dv_type' AND object_id = OBJECT_ID('dropdown_values'))
+    CREATE INDEX IX_dv_type ON dropdown_values(drop_type);
 GO
 
 -- ─── LEADS ───────────────────────────────────────────────────────────────────
@@ -328,12 +337,14 @@ CREATE TABLE leads (
     industry       NVARCHAR(100)     NULL,
     notes          NVARCHAR(MAX)     NULL,
     assigned_to    UNIQUEIDENTIFIER  NULL,
+    lead_value     DECIMAL(18,2)     NULL,
     created_at     DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
     updated_at     DATETIME2         NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT FK_lead_user FOREIGN KEY (assigned_to) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_lead_user ON leads(assigned_to);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_lead_user' AND object_id = OBJECT_ID('leads'))
+    CREATE INDEX IX_lead_user ON leads(assigned_to);
 GO
 
 -- ─── PROSPECTS ───────────────────────────────────────────────────────────────
@@ -354,8 +365,10 @@ CREATE TABLE prospects (
     CONSTRAINT FK_prospect_user FOREIGN KEY (assigned_to) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_prospect_lead ON prospects(lead_id);
-CREATE INDEX IX_prospect_user ON prospects(assigned_to);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_prospect_lead' AND object_id = OBJECT_ID('prospects'))
+    CREATE INDEX IX_prospect_lead ON prospects(lead_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_prospect_user' AND object_id = OBJECT_ID('prospects'))
+    CREATE INDEX IX_prospect_user ON prospects(assigned_to);
 GO
 
 -- ─── SALES ───────────────────────────────────────────────────────────────────
@@ -376,7 +389,8 @@ CREATE TABLE sales (
     CONSTRAINT FK_sale_user     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_sale_customer ON sales(customer_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_sale_customer' AND object_id = OBJECT_ID('sales'))
+    CREATE INDEX IX_sale_customer ON sales(customer_id);
 GO
 
 -- ─── SALE ITEMS ──────────────────────────────────────────────────────────────
@@ -393,8 +407,10 @@ CREATE TABLE sale_items (
     CONSTRAINT FK_si_item FOREIGN KEY (inventory_item_id) REFERENCES inventory_items(id)
 );
 GO
-CREATE INDEX IX_si_sale ON sale_items(sale_id);
-CREATE INDEX IX_si_item ON sale_items(inventory_item_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_si_sale' AND object_id = OBJECT_ID('sale_items'))
+    CREATE INDEX IX_si_sale ON sale_items(sale_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_si_item' AND object_id = OBJECT_ID('sale_items'))
+    CREATE INDEX IX_si_item ON sale_items(inventory_item_id);
 GO
 
 -- ─── DELIVERIES ──────────────────────────────────────────────────────────────
@@ -413,7 +429,8 @@ CREATE TABLE deliveries (
     CONSTRAINT FK_delivery_user FOREIGN KEY (created_by) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_delivery_sale ON deliveries(sale_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_delivery_sale' AND object_id = OBJECT_ID('deliveries'))
+    CREATE INDEX IX_delivery_sale ON deliveries(sale_id);
 GO
 
 -- ─── DELIVERY ITEMS ──────────────────────────────────────────────────────────
@@ -428,8 +445,10 @@ CREATE TABLE delivery_items (
     CONSTRAINT FK_di_sale_item FOREIGN KEY (sale_item_id) REFERENCES sale_items(id)
 );
 GO
-CREATE INDEX IX_di_delivery  ON delivery_items(delivery_id);
-CREATE INDEX IX_di_sale_item ON delivery_items(sale_item_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_di_delivery' AND object_id = OBJECT_ID('delivery_items'))
+    CREATE INDEX IX_di_delivery  ON delivery_items(delivery_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_di_sale_item' AND object_id = OBJECT_ID('delivery_items'))
+    CREATE INDEX IX_di_sale_item ON delivery_items(sale_item_id);
 GO
 
 -- ─── DEVICES ─────────────────────────────────────────────────────────────────
@@ -449,7 +468,8 @@ CREATE TABLE devices (
     CONSTRAINT FK_device_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
 );
 GO
-CREATE INDEX IX_device_customer ON devices(customer_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_device_customer' AND object_id = OBJECT_ID('devices'))
+    CREATE INDEX IX_device_customer ON devices(customer_id);
 GO
 
 -- ─── DEVICE ISSUE TYPES ──────────────────────────────────────────────────────
@@ -484,8 +504,10 @@ CREATE TABLE tickets (
     CONSTRAINT FK_ticket_issue_type   FOREIGN KEY (issue_type_id) REFERENCES device_issue_types(id)
 );
 GO
-CREATE INDEX IX_ticket_device   ON tickets(device_id);
-CREATE INDEX IX_ticket_customer ON tickets(customer_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ticket_device' AND object_id = OBJECT_ID('tickets'))
+    CREATE INDEX IX_ticket_device   ON tickets(device_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ticket_customer' AND object_id = OBJECT_ID('tickets'))
+    CREATE INDEX IX_ticket_customer ON tickets(customer_id);
 GO
 
 -- ─── TICKET MESSAGES ─────────────────────────────────────────────────────────
@@ -500,7 +522,8 @@ CREATE TABLE ticket_messages (
     CONSTRAINT FK_tm_user   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_tm_ticket ON ticket_messages(ticket_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_tm_ticket' AND object_id = OBJECT_ID('ticket_messages'))
+    CREATE INDEX IX_tm_ticket ON ticket_messages(ticket_id);
 GO
 
 -- ─── TICKET MESSAGE READS ────────────────────────────────────────────────────
@@ -529,8 +552,10 @@ CREATE TABLE messages (
     CONSTRAINT FK_msg_recipient FOREIGN KEY (recipient_id) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_msg_sender    ON messages(sender_id);
-CREATE INDEX IX_msg_recipient ON messages(recipient_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_msg_sender' AND object_id = OBJECT_ID('messages'))
+    CREATE INDEX IX_msg_sender    ON messages(sender_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_msg_recipient' AND object_id = OBJECT_ID('messages'))
+    CREATE INDEX IX_msg_recipient ON messages(recipient_id);
 GO
 
 -- ─── MESSAGE READS ───────────────────────────────────────────────────────────
@@ -557,8 +582,10 @@ CREATE TABLE activity_logs (
     CONSTRAINT FK_log_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_log_user   ON activity_logs(user_id);
-CREATE INDEX IX_log_action ON activity_logs(action);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_log_user' AND object_id = OBJECT_ID('activity_logs'))
+    CREATE INDEX IX_log_user   ON activity_logs(user_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_log_action' AND object_id = OBJECT_ID('activity_logs'))
+    CREATE INDEX IX_log_action ON activity_logs(action);
 GO
 
 -- ─── HELP CATEGORIES ─────────────────────────────────────────────────────────
@@ -587,7 +614,8 @@ CREATE TABLE help_articles (
     CONSTRAINT FK_article_category FOREIGN KEY (category_id) REFERENCES help_categories(id) ON DELETE CASCADE
 );
 GO
-CREATE INDEX IX_article_category ON help_articles(category_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_article_category' AND object_id = OBJECT_ID('help_articles'))
+    CREATE INDEX IX_article_category ON help_articles(category_id);
 GO
 
 -- ─── SYSTEM REQUESTS ─────────────────────────────────────────────────────────
@@ -605,7 +633,8 @@ CREATE TABLE system_requests (
     CONSTRAINT FK_sr_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_sr_user ON system_requests(user_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_sr_user' AND object_id = OBJECT_ID('system_requests'))
+    CREATE INDEX IX_sr_user ON system_requests(user_id);
 GO
 
 -- ─── FOREIGN EXCHANGE RATES ──────────────────────────────────────────────────
@@ -636,7 +665,8 @@ CREATE TABLE assembly_files (
     CONSTRAINT FK_af_user     FOREIGN KEY (uploaded_by) REFERENCES users(id)
 );
 GO
-CREATE INDEX IX_af_assembly ON assembly_files(assembly_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_af_assembly' AND object_id = OBJECT_ID('assembly_files'))
+    CREATE INDEX IX_af_assembly ON assembly_files(assembly_id);
 GO
 
 PRINT 'Migration 001 completed successfully — all tables created.';

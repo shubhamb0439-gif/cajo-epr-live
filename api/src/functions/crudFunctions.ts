@@ -65,15 +65,14 @@ function makeCrud(
         if (pre.error) return badRequest(pre.error);
         const body = pre.body;
         body.id = body.id || uuidv4();
-        // If the body has an assigned_to (FK to users.id), confirm it
-        // references a real user. Otherwise clear it so the INSERT doesn't
-        // fail the FK constraint.
+        // assigned_to FK references users.id. The frontend sends auth_user_id,
+        // so look up the real users.id and store that instead.
         if (body.assigned_to) {
           const u = await queryOne(
-            'SELECT id FROM users WHERE id = @id',
+            'SELECT id FROM users WHERE auth_user_id = @id OR id = @id',
             { id: body.assigned_to }
           );
-          if (!u) body.assigned_to = null;
+          body.assigned_to = u ? u.id : null;
         }
         const { sql, params } = buildInsert(table, body);
         await execute(sql, params);
@@ -98,10 +97,10 @@ function makeCrud(
         const body = pre.body;
         if (body.assigned_to) {
           const u = await queryOne(
-            'SELECT id FROM users WHERE id = @id',
+            'SELECT id FROM users WHERE auth_user_id = @id OR id = @id',
             { id: body.assigned_to }
           );
-          if (!u) body.assigned_to = null;
+          body.assigned_to = u ? u.id : null;
         }
         const { sql, params } = buildUpdate(table, body, id);
         await execute(sql, params);
