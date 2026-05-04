@@ -71,7 +71,14 @@ export const SCHEMAS: Record<string, TableSchema> = {
     readonly: ['created_at','updated_at','refresh_token','last_sign_in'],
   },
   vendors: {
-    columns: ['id','vendor_name','email','phone','address','contact_name','rating','rating_count','rating_average','notes','vendor_group','vendor_currency','created_by','updated_by'],
+    columns: ['id','vendor_name','email','phone','address','contact_name','vendor_group','vendor_currency','notes','created_by','updated_by',
+              'vendor_id','vendor_name_legal','vendor_rating_price','vendor_rating_quality','vendor_rating_lead','vendor_rating_average'],
+    aliases: {
+      vendor_email:        'email',
+      vendor_phone:        'phone',
+      vendor_address:      'address',
+      vendor_contact_name: 'contact_name',
+    },
     readonly: ['created_at','updated_at'],
   },
   customers: {

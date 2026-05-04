@@ -1,14 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { formatDate } from '../lib/dateUtils';
 import { Search, Plus, Pencil, Trash2, Star, ChevronDown, ChevronRight } from 'lucide-react';
-import type { Database } from '../lib/database.types';
 import SidePanel from '../components/SidePanel';
 import { api } from '../lib/api';
 
-type Vendor = Database['public']['Tables']['vendors']['Row'];
+interface Vendor {
+  id: string;
+  vendor_id: string | null;
+  vendor_name: string;
+  vendor_name_legal: string | null;
+  vendor_email: string | null;
+  vendor_phone: string | null;
+  vendor_address: string | null;
+  vendor_contact_name: string | null;
+  vendor_group: string | null;
+  vendor_currency: string | null;
+  vendor_rating_price: number | null;
+  vendor_rating_quality: number | null;
+  vendor_rating_lead: number | null;
+  vendor_rating_average: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+}
 
 interface VendorPurchase {
   id: string;
@@ -51,7 +70,7 @@ export default function Vendors() {
     if (search) {
       result = result.filter(v =>
         v.vendor_name.toLowerCase().includes(search.toLowerCase()) ||
-        v.vendor_id.toLowerCase().includes(search.toLowerCase()) ||
+        v.vendor_id?.toLowerCase().includes(search.toLowerCase()) ||
         (v.vendor_contact_name && v.vendor_contact_name.toLowerCase().includes(search.toLowerCase())) ||
         (v.vendor_email && v.vendor_email.toLowerCase().includes(search.toLowerCase()))
       );
@@ -153,8 +172,8 @@ export default function Vendors() {
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {filtered.map(v => (
-                <>
-                  <tr key={v.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                <Fragment key={v.id}>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
                         onClick={() => toggleRowExpansion(v.id)}
@@ -177,9 +196,9 @@ export default function Vendors() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-2">
-                        <Rating label="P" value={v.vendor_rating_price} />
-                        <Rating label="Q" value={v.vendor_rating_quality} />
-                        <Rating label="L" value={v.vendor_rating_lead} />
+                        <Rating label="P" value={v.vendor_rating_price ?? 0} />
+                        <Rating label="Q" value={v.vendor_rating_quality ?? 0} />
+                        <Rating label="L" value={v.vendor_rating_lead ?? 0} />
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
@@ -196,7 +215,7 @@ export default function Vendors() {
                     </td>
                   </tr>
                   {expandedRows.has(v.id) && (
-                    <tr key={`${v.id}-expanded`} className="bg-slate-50 dark:bg-slate-900">
+                    <tr className="bg-slate-50 dark:bg-slate-900">
                       <td colSpan={7} className="px-6 py-4">
                         <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Purchase History</div>
                         {vendorPurchases[v.id] && vendorPurchases[v.id].length > 0 ? (
@@ -208,14 +227,14 @@ export default function Vendors() {
                                     <div>
                                       <span className="text-xs text-slate-500 dark:text-slate-400">Date:</span>
                                       <span className="ml-1 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                        {formatDate(purchase.purchase_date)}
+                                        {formatDate((purchase as any).created_at)}
                                       </span>
                                     </div>
-                                    {purchase.purchase_po_number && (
+                                    {(purchase as any).po_reference && (
                                       <div>
                                         <span className="text-xs text-slate-500 dark:text-slate-400">PO #:</span>
                                         <span className="ml-1 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                          {purchase.purchase_po_number}
+                                          {(purchase as any).po_reference}
                                         </span>
                                       </div>
                                     )}
@@ -287,7 +306,7 @@ export default function Vendors() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

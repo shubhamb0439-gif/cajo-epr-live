@@ -180,9 +180,25 @@ const customerResponse = (r: any) => {
   };
 };
 
+// Vendors page reads vendor_email, vendor_phone, vendor_address, vendor_contact_name
+// but the DB stores them as email, phone, address, contact_name. Alias on the way out.
+const vendorResponse = (r: any) => {
+  if (!r) return r;
+  return {
+    ...r,
+    vendor_email:        r.email ?? '',
+    vendor_phone:        r.phone ?? '',
+    vendor_address:      r.address ?? '',
+    vendor_contact_name: r.contact_name ?? '',
+    vendor_rating_price:   r.vendor_rating_price   ?? 0,
+    vendor_rating_quality: r.vendor_rating_quality ?? 0,
+    vendor_rating_lead:    r.vendor_rating_lead    ?? 0,
+  };
+};
+
 // Register generic CRUD for simple tables.
 makeCrud('users',     'users',     'name ASC');
-makeCrud('vendors',   'vendors',   'vendor_name ASC');
+makeCrud('vendors',   'vendors',   'vendor_name ASC', vendorResponse);
 makeCrud('customers', 'customers', 'customer_company ASC', customerResponse);
 makeCrud('leads',     'leads',     'created_at DESC', leadResponse,
   async (id) => { await execute('UPDATE prospects SET lead_id = NULL WHERE lead_id = @id', { id }); }
