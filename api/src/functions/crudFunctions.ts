@@ -20,7 +20,8 @@ function makeCrud(
   name: string,
   table: string,
   orderBy = 'created_at DESC',
-  responseTransform?: (row: any) => any
+  responseTransform?: (row: any) => any,
+  preDeleteHook?: (id: string) => Promise<void>
 ) {
   const route = name;
   const xform = responseTransform || ((r: any) => r);
@@ -118,6 +119,7 @@ function makeCrud(
     handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
       try {
         if (!requireAuth(req)) return unauthorized();
+        if (preDeleteHook) await preDeleteHook(req.params.id);
         await execute(`DELETE FROM ${table} WHERE id = @id`, { id: req.params.id });
         return noContent();
       } catch (err) { return serverError(err); }
@@ -170,7 +172,7 @@ const customerResponse = (r: any) => {
     customer_phone:    r.phone ?? '',
     customer_company:  r.customer_company ?? '',
     customer_position: '',
-    customer_status:   'active',   // default — frontend calls capitalize() without a null guard
+    customer_status:   r.status || 'active',
     customer_source:   '',
     customer_value:    0,
     customer_notes:    r.notes ?? '',
@@ -181,7 +183,9 @@ const customerResponse = (r: any) => {
 makeCrud('users',     'users',     'name ASC');
 makeCrud('vendors',   'vendors',   'vendor_name ASC');
 makeCrud('customers', 'customers', 'customer_company ASC', customerResponse);
-makeCrud('leads',     'leads',     'created_at DESC', leadResponse);
+makeCrud('leads',     'leads',     'created_at DESC', leadResponse,
+  async (id) => { await execute('UPDATE prospects SET lead_id = NULL WHERE lead_id = @id', { id }); }
+);
 makeCrud('prospects', 'prospects', 'created_at DESC', prospectResponse);
 makeCrud('devices',   'devices',   'created_at DESC');
 

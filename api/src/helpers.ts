@@ -75,16 +75,17 @@ export const SCHEMAS: Record<string, TableSchema> = {
     readonly: ['created_at','updated_at'],
   },
   customers: {
-    columns: ['id','customer_company','contact_name','email','phone','address','notes'],
+    columns: ['id','customer_company','contact_name','email','phone','address','notes','status'],
     aliases: {
-      customer_name:  'contact_name',
-      customer_email: 'email',
-      customer_phone: 'phone',
-      customer_notes: 'notes',
-      // customer_position, customer_status, customer_source, customer_value,
+      customer_name:   'contact_name',
+      customer_email:  'email',
+      customer_phone:  'phone',
+      customer_notes:  'notes',
+      customer_status: 'status',
+      // customer_position, customer_source, customer_value,
       // assigned_to don't exist as columns -> silently dropped
     },
-    readonly: ['created_at','updated_at','customer_position','customer_status','customer_source','customer_value','assigned_to'],
+    readonly: ['created_at','updated_at','customer_position','customer_source','customer_value','assigned_to'],
   },
   leads: {
     columns: ['id','company_name','contact_name','email','phone','source','status','industry','notes','assigned_to'],

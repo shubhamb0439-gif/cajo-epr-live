@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import SidePanel from '../components/SidePanel';
-import { Pencil, Trash2, Plus, Search, Filter } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface Lead {
@@ -216,11 +216,12 @@ function LeadForm({ formData, setFormData, onSubmit, onCancel, isEdit, leadStatu
 }
 
 export default function Leads() {
-  const { user, hasWriteAccess } = useAuth();
+  const { hasWriteAccess } = useAuth();
   const { getCurrencySymbol, isViewOnly } = useCurrency();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [leadStatuses, setLeadStatuses] = useState<string[]>([]);
+  // Only allow these statuses for leads
+  const [leadStatuses] = useState<string[]>(['new', 'contacted', 'qualified', 'lost']);
   const [leadSources, setLeadSources] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -260,23 +261,19 @@ export default function Leads() {
       return;
     }
 
-    // Fetch user names for assigned leads
+    // API transform already adds lead_name, lead_status, etc. aliases
     if (data && data.length > 0) {
       const userIds = [...new Set(data.map(l => l.assigned_to).filter(Boolean))];
-
       if (userIds.length > 0) {
         const { data: usersData } = await api.users.getAll();
-
         const userMap = new Map(usersData?.map(u => [u.auth_user_id, u.name]));
-
         const leadsWithUsers = data.map(lead => ({
           ...lead,
-          assigned_user: lead.assigned_to ? { name: userMap.get(lead.assigned_to) || 'Unknown' } : null
+          assigned_user: lead.assigned_to ? { name: userMap.get(lead.assigned_to) || 'Unknown' } : null,
         }));
-
-        setLeads(leadsWithUsers);
+        setLeads(leadsWithUsers as unknown as Lead[]);
       } else {
-        setLeads(data);
+        setLeads(data as unknown as Lead[]);
       }
     } else {
       setLeads([]);
@@ -294,12 +291,10 @@ export default function Leads() {
   };
 
   const loadDropdowns = async () => {
-    const [statusRes, sourceRes] = await Promise.all([
-      api.dropdowns.getValues('lead_status'),
+    const [, sourceRes] = await Promise.all([
+      Promise.resolve(), // skip status fetch, use hardcoded
       api.dropdowns.getValues('lead_source'),
     ]);
-
-    if (statusRes.data) setLeadStatuses(statusRes.data.map(d => d.drop_value));
     if (sourceRes.data) setLeadSources(sourceRes.data.map(d => d.drop_value));
   };
 
@@ -308,34 +303,24 @@ export default function Leads() {
   };
 
   const moveToProspects = async (lead: Lead) => {
-    const { data: prospectData, error: insertError } = await api.prospects.create({
-      prospect_name: lead.lead_name,
-      prospect_email: lead.lead_email,
-      prospect_phone: lead.lead_phone,
-      prospect_company: lead.lead_company,
-      prospect_position: lead.lead_position,
-      prospect_status: 'qualified',
-      prospect_source: lead.lead_source,
-      prospect_value: lead.lead_value,
-      prospect_notes: lead.lead_notes,
-      assigned_to: lead.assigned_to,
-      created_by: user?.id,
-      updated_by: user?.id,
-      original_lead_id: lead.id,
-    });
-
+    const { error: insertError } = await api.prospects.create({
+      prospect_company: lead.lead_company || lead.lead_name || 'Unknown',
+      prospect_name:    lead.lead_name || null,
+      prospect_email:   lead.lead_email || null,
+      prospect_phone:   lead.lead_phone || null,
+      prospect_status:  'demo_scheduled',
+      prospect_notes:   lead.lead_notes || null,
+      assigned_to:      lead.assigned_to,
+    } as any);
     if (insertError) {
       alert('Error moving to prospects: ' + insertError.message);
       return false;
     }
-
     const { error: deleteError } = await api.leads.delete(lead.id);
-
     if (deleteError) {
       alert('Error removing lead: ' + deleteError.message);
       return false;
     }
-
     await logActivity('Convert Lead to Prospect', `Moved lead "${lead.lead_name}" to prospects`);
     return true;
   };
@@ -397,16 +382,15 @@ export default function Leads() {
     }
 
     const leadData = {
-      lead_name: formData.lead_name.trim(),
-      lead_email: formData.lead_email.trim() || null,
-      lead_phone: formData.lead_phone.trim() || null,
-      lead_company: formData.lead_company.trim() || null,
+      lead_name:     formData.lead_name.trim() || null,
+      lead_company:  formData.lead_company.trim() || null,
+      lead_email:    formData.lead_email.trim() || null,
+      lead_phone:    formData.lead_phone.trim() || null,
+      lead_status:   formData.lead_status,
+      lead_source:   formData.lead_source || null,
       lead_position: formData.lead_position.trim() || null,
-      lead_status: formData.lead_status,
-      lead_source: formData.lead_source || null,
-      lead_value: formData.lead_value ? parseFloat(formData.lead_value) : null,
-      lead_notes: formData.lead_notes.trim() || null,
-      assigned_to: formData.assigned_to && formData.assigned_to.trim() !== '' ? formData.assigned_to : null,
+      lead_notes:    formData.lead_notes.trim() || null,
+      assigned_to:   formData.assigned_to.trim() || null,
     };
 
     if (showEditPanel && selectedLead) {
@@ -419,7 +403,7 @@ export default function Leads() {
         return;
       }
 
-      const { error } = await api.leads.update(selectedLead.id, leadData);
+      const { error } = await api.leads.update(selectedLead.id, leadData as any);
 
       if (error) {
         alert('Error updating lead: ' + error.message);
@@ -429,7 +413,7 @@ export default function Leads() {
         loadLeads();
       }
     } else {
-      const { error } = await api.leads.create(leadData);
+      const { error } = await api.leads.create(leadData as any);
 
       if (error) {
         alert('Error creating lead: ' + error.message);
