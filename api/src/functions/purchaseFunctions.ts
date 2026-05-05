@@ -75,15 +75,32 @@ app.http('purchasesGetAll', {
         `SELECT *, vendor_id as purchase_vendor_id, po_reference as purchase_po_number, created_at as purchase_date FROM purchases ORDER BY created_at DESC`
       );
       for (const p of purchases) {
-        p.purchase_items = await query(
-          `SELECT pi.*, pi.inventory_item_id as item_id, pi.quantity_ordered as quantity,
+        const rawItems = await query(
+          `SELECT pi.id, pi.purchase_id, pi.inventory_item_id, pi.quantity_ordered as quantity,
+                  pi.quantity_received, pi.remaining_quantity, pi.unit_cost, pi.vendor_item_code,
                   pi.lead_time_days as lead_time,
-                  i.item_name, i.item_id as item_code
+                  i.item_name, i.item_id as item_code, ISNULL(i.item_stock_current, 0) as item_stock_current
            FROM purchase_items pi
            LEFT JOIN inventory_items i ON i.id = pi.inventory_item_id
            WHERE pi.purchase_id = @id`,
           { id: p.id }
         );
+        p.purchase_items = rawItems.map((pi: any) => ({
+          id:               pi.id,
+          item_id:          pi.inventory_item_id,
+          vendor_item_code: pi.vendor_item_code,
+          quantity:         pi.quantity,
+          quantity_received: pi.quantity_received || 0,
+          unit_cost:        pi.unit_cost || 0,
+          lead_time:        pi.lead_time || 0,
+          received:         (pi.quantity_received || 0) >= pi.quantity,
+          inventory_items: {
+            id:                 pi.inventory_item_id,
+            item_id:            pi.item_code || '',
+            item_name:          pi.item_name || 'Unknown',
+            item_stock_current: pi.item_stock_current || 0,
+          },
+        }));
         const vendor = await queryOne(
           'SELECT vendor_name FROM vendors WHERE id = @id',
           { id: p.vendor_id }
@@ -154,14 +171,94 @@ app.http('purchasesUpdate', {
       if (!requireAuth(req)) return unauthorized();
       const id = req.params.id;
       const { items, ...body } = await parseBody(req);
+
+      // Update purchase header (po_reference, vendor_id, etc.)
       if (Object.keys(body).length) {
-        const upd = buildUpdate('purchases', body, id);
-        await execute(upd.sql, upd.params);
+        try {
+          const upd = buildUpdate('purchases', body, id);
+          await execute(upd.sql, upd.params);
+        } catch (e: any) {
+          if (!e.message?.includes('Nothing to update')) throw e;
+        }
       }
+
+      // Update purchase items
+      if (Array.isArray(items)) {
+        for (const item of items) {
+          if (item.toDelete && item.id) {
+            const existing = await queryOne('SELECT * FROM purchase_items WHERE id = @id', { id: item.id });
+            if (existing && (existing.quantity_received || 0) > 0) {
+              await execute(
+                `UPDATE inventory_items SET item_stock_current = item_stock_current - @qty, updated_at = SYSUTCDATETIME() WHERE id = @invId`,
+                { qty: existing.quantity_received, invId: existing.inventory_item_id }
+              );
+            }
+            await execute('DELETE FROM purchase_items WHERE id = @id', { id: item.id });
+
+          } else if (item.id) {
+            const existing = await queryOne('SELECT * FROM purchase_items WHERE id = @id', { id: item.id });
+            if (existing) {
+              const diff = (item.quantity_received || 0) - (existing.quantity_received || 0);
+              if (diff !== 0) {
+                await execute(
+                  `UPDATE inventory_items SET item_stock_current = item_stock_current + @diff, updated_at = SYSUTCDATETIME() WHERE id = @invId`,
+                  { diff, invId: existing.inventory_item_id }
+                );
+              }
+            }
+            await execute(
+              `UPDATE purchase_items SET quantity_ordered = @qty, quantity_received = @rcv,
+               remaining_quantity = @rem, unit_cost = @cost, vendor_item_code = @vc, lead_time_days = @lt
+               WHERE id = @id`,
+              {
+                qty:  item.quantity           || 0,
+                rcv:  item.quantity_received  || 0,
+                rem:  Math.max(0, (item.quantity || 0) - (item.quantity_received || 0)),
+                cost: item.unit_cost          || 0,
+                vc:   item.vendor_item_code   || null,
+                lt:   item.lead_time          || 0,
+                id:   item.id,
+              }
+            );
+
+          } else if (item.item_id) {
+            const rcv = item.quantity_received || 0;
+            const newId = uuidv4();
+            await execute(
+              `INSERT INTO purchase_items (id, purchase_id, inventory_item_id, quantity_ordered, quantity_received, remaining_quantity, unit_cost, vendor_item_code, lead_time_days)
+               VALUES (@id, @pid, @inv, @qty, @rcv, @rem, @cost, @vc, @lt)`,
+              {
+                id:   newId,
+                pid:  id,
+                inv:  item.item_id,
+                qty:  item.quantity  || 0,
+                rcv,
+                rem:  Math.max(0, (item.quantity || 0) - rcv),
+                cost: item.unit_cost || 0,
+                vc:   item.vendor_item_code || null,
+                lt:   item.lead_time        || 0,
+              }
+            );
+            if (rcv > 0) {
+              await execute(
+                `UPDATE inventory_items SET item_stock_current = item_stock_current + @qty, updated_at = SYSUTCDATETIME() WHERE id = @invId`,
+                { qty: rcv, invId: item.item_id }
+              );
+            }
+          }
+        }
+
+        // Recalculate purchase total from remaining items
+        const remaining = await query(
+          'SELECT quantity_ordered, unit_cost FROM purchase_items WHERE purchase_id = @id', { id }
+        );
+        const newTotal = remaining.reduce((s: number, r: any) => s + (r.quantity_ordered || 0) * (r.unit_cost || 0), 0);
+        await execute('UPDATE purchases SET total_amount = @total, updated_at = SYSUTCDATETIME() WHERE id = @id', { total: newTotal, id });
+      }
+
       const row = await queryOne('SELECT * FROM purchases WHERE id = @id', { id });
       return ok(row);
     } catch (err: any) {
-      if (err.message?.includes('Nothing to update')) return badRequest(err.message);
       return serverError(err);
     }
   },

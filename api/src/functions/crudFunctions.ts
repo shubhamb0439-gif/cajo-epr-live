@@ -197,7 +197,28 @@ const vendorResponse = (r: any) => {
 };
 
 // Register generic CRUD for simple tables.
-makeCrud('users',     'users',     'name ASC');
+makeCrud('users', 'users', 'name ASC', undefined, async (id) => {
+  // Remove rows that have NOT NULL FK columns pointing to this user
+  await execute('DELETE FROM message_reads        WHERE user_id      = @id', { id });
+  await execute('DELETE FROM messages             WHERE sender_id    = @id OR recipient_id = @id', { id });
+  await execute('DELETE FROM ticket_message_reads WHERE user_id      = @id', { id });
+  await execute('DELETE FROM ticket_messages      WHERE user_id      = @id', { id });
+  await execute('DELETE FROM activity_logs        WHERE user_id      = @id', { id });
+  await execute('DELETE FROM system_requests      WHERE user_id      = @id', { id });
+  // NULL out nullable FK references in every table that references users.id
+  await execute('UPDATE leads                 SET assigned_to = NULL WHERE assigned_to = @id', { id });
+  await execute('UPDATE prospects             SET assigned_to = NULL WHERE assigned_to = @id', { id });
+  await execute('UPDATE customers             SET assigned_to = NULL WHERE assigned_to = @id', { id });
+  await execute('UPDATE tickets               SET assigned_to = NULL WHERE assigned_to = @id', { id });
+  await execute('UPDATE tickets               SET created_by  = NULL WHERE created_by  = @id', { id });
+  await execute('UPDATE purchases             SET created_by  = NULL WHERE created_by  = @id', { id });
+  await execute('UPDATE purchase_orders       SET created_by  = NULL WHERE created_by  = @id', { id });
+  await execute('UPDATE sales                 SET created_by  = NULL WHERE created_by  = @id', { id });
+  await execute('UPDATE deliveries            SET created_by  = NULL WHERE created_by  = @id', { id });
+  await execute('UPDATE assemblies            SET created_by  = NULL WHERE created_by  = @id', { id });
+  await execute('UPDATE assembly_files        SET uploaded_by = NULL WHERE uploaded_by = @id', { id });
+  await execute('UPDATE foreign_exchange_rates SET updated_by = NULL WHERE updated_by  = @id', { id });
+});
 makeCrud('vendors',   'vendors',   'vendor_name ASC', vendorResponse);
 makeCrud('customers', 'customers', 'customer_company ASC', customerResponse);
 makeCrud('leads',     'leads',     'created_at DESC', leadResponse,

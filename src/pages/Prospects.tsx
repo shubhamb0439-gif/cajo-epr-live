@@ -398,7 +398,13 @@ export default function Prospects() {
     if (showEditPanel && selectedProspect) {
       // Changing to 'won' auto-converts to customer
       if (formData.prospect_status === 'won') {
-        const moved = await moveToCustomers({ ...selectedProspect, prospect_status: 'won' });
+        const moved = await moveToCustomers({
+          ...selectedProspect,
+          prospect_status: 'won',
+          prospect_source: formData.prospect_source || null,
+          prospect_value:  formData.prospect_value ? parseFloat(formData.prospect_value) : null,
+          assigned_to:     formData.assigned_to || null,
+        });
         if (moved) {
           setShowEditPanel(false);
           loadProspects();

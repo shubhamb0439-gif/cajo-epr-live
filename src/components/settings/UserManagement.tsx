@@ -27,7 +27,11 @@ export default function UserManagement() {
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete user ${name}?`)) return;
-    await api.users.delete(id);
+    const { error } = await api.users.delete(id);
+    if (error) {
+      alert(`Failed to delete user: ${(error as any).message || 'Unknown error'}`);
+      return;
+    }
     loadUsers();
   };
 
