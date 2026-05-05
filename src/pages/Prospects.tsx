@@ -305,10 +305,11 @@ export default function Prospects() {
     const companyName = prospect.prospect_company || prospect.prospect_name || 'Unknown';
     const { error: insertError } = await api.customers.create({
       customer_company: companyName,
-      contact_name:     prospect.prospect_name || null,
-      email:            prospect.prospect_email || null,
-      phone:            prospect.prospect_phone || null,
-      notes:            prospect.prospect_notes || null,
+      customer_name:    prospect.prospect_name || null,
+      customer_email:   prospect.prospect_email || null,
+      customer_phone:   prospect.prospect_phone || null,
+      customer_notes:   prospect.prospect_notes || null,
+      customer_status:  'active',
       customer_source:  prospect.prospect_source || null,
       customer_value:   prospect.prospect_value  || null,
       assigned_to:      prospect.assigned_to     || null,
@@ -403,8 +404,9 @@ export default function Prospects() {
           prospect_status: 'won',
           prospect_source: formData.prospect_source || null,
           prospect_value:  formData.prospect_value ? parseFloat(formData.prospect_value) : null,
+          prospect_notes:  formData.prospect_notes  || null,
           assigned_to:     formData.assigned_to || null,
-        });
+        } as Prospect);
         if (moved) {
           setShowEditPanel(false);
           loadProspects();

@@ -121,7 +121,10 @@ function makeCrud(
         if (preDeleteHook) await preDeleteHook(req.params.id);
         await execute(`DELETE FROM ${table} WHERE id = @id`, { id: req.params.id });
         return noContent();
-      } catch (err) { return serverError(err); }
+      } catch (err: any) {
+        if (err.statusCode === 400) return badRequest(err.message);
+        return serverError(err);
+      }
     },
   });
 }
@@ -220,7 +223,19 @@ makeCrud('users', 'users', 'name ASC', undefined, async (id) => {
   await execute('UPDATE foreign_exchange_rates SET updated_by = NULL WHERE updated_by  = @id', { id });
 });
 makeCrud('vendors',   'vendors',   'vendor_name ASC', vendorResponse);
-makeCrud('customers', 'customers', 'customer_company ASC', customerResponse);
+makeCrud('customers', 'customers', 'customer_company ASC', customerResponse, async (id) => {
+  const sales = await query('SELECT id FROM sales WHERE customer_id = @id', { id });
+  if (sales.length > 0) {
+    const err: any = new Error(
+      `Cannot delete this customer because they have ${sales.length} associated sale record(s). Remove or reassign the sales first.`
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+  await execute('UPDATE devices        SET customer_id = NULL WHERE customer_id = @id', { id });
+  await execute('UPDATE tickets        SET customer_id = NULL WHERE customer_id = @id', { id });
+  await execute('UPDATE purchase_orders SET customer_id = NULL WHERE customer_id = @id', { id });
+});
 makeCrud('leads',     'leads',     'created_at DESC', leadResponse,
   async (id) => { await execute('UPDATE prospects SET lead_id = NULL WHERE lead_id = @id', { id }); }
 );

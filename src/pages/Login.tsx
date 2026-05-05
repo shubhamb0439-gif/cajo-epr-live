@@ -35,9 +35,25 @@ export default function Login() {
     }
   };
 
+  const passwordMeetsRequirements = (pwd: string): boolean => {
+    return (
+      pwd.length >= 8 &&
+      /[A-Z]/.test(pwd) &&
+      /[a-z]/.test(pwd) &&
+      /\d/.test(pwd) &&
+      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pwd)
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!isLogin && !passwordMeetsRequirements(password)) {
+      setError('Password does not meet all requirements. Please check the strength indicator below.');
+      return;
+    }
+
     setLoading(true);
 
     try {

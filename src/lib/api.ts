@@ -77,6 +77,10 @@ export const api = {
       po_number?: string;
     }) => azureApi.post<Assembly>('/assemblies/create', data),
     reverse: (id: string) => azureApi.post<null>(`/assemblies/${id}/reverse`, {}),
+    updateUnitSerial: (unitId: string, serial: string) =>
+      azureApi.patch<AssemblyUnit>(`/assemblies/units/${unitId}`, { assembly_serial_number: serial }),
+    updateComponentSerial: (componentId: string, serial: string) =>
+      azureApi.patch<AssemblyComponent>(`/assemblies/components/${componentId}`, { assembly_item_serial_number: serial }),
     getFiles: (assemblyId: string) => azureApi.get<AssemblyFile[]>(`/assemblies/${assemblyId}/files`),
     addFile: (data: Partial<AssemblyFile>) => azureApi.post<AssemblyFile>('/assemblies/files', data),
     deleteFile: (id: string) => azureApi.delete<null>(`/assemblies/files/${id}`),

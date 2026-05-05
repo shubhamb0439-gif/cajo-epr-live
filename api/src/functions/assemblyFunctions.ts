@@ -49,14 +49,20 @@ app.http('bomsGetAll', {
                   bc.quantity_required as quantity,
                   bc.quantity_required as bom_component_quantity,
                   i.item_name,
-                  i.item_group
+                  i.item_group,
+                  i.item_serial_number_tracked
            FROM bom_components bc
            LEFT JOIN inventory_items i ON i.id = bc.inventory_item_id
            WHERE bc.bom_id = @id`,
           { id: b.id }
         );
         for (const c of b.bom_components) {
-          c.inventory_items = c.item_name ? { item_name: c.item_name, item_group: c.item_group } : null;
+          c.inventory_items = c.item_name ? {
+            id: c.inventory_item_id,
+            item_name: c.item_name,
+            item_group: c.item_group,
+            item_serial_number_tracked: c.item_serial_number_tracked ?? false,
+          } : null;
         }
       }
       return ok(boms);
@@ -154,15 +160,20 @@ app.http('bomsGetById', {
                 bc.quantity_required as quantity,
                 bc.quantity_required as bom_component_quantity,
                 i.item_name,
-                i.item_group
+                i.item_group,
+                i.item_serial_number_tracked
          FROM bom_components bc
          LEFT JOIN inventory_items i ON i.id = bc.inventory_item_id
          WHERE bc.bom_id = @id`,
         { id: b.id }
       );
-      // Frontend reads bom_components[n].inventory_items.item_name
       for (const c of b.bom_components) {
-        c.inventory_items = c.item_name ? { item_name: c.item_name, item_group: c.item_group } : null;
+        c.inventory_items = c.item_name ? {
+          id: c.inventory_item_id,
+          item_name: c.item_name,
+          item_group: c.item_group,
+          item_serial_number_tracked: c.item_serial_number_tracked ?? false,
+        } : null;
       }
       return ok(b);
     } catch (err) { return serverError(err); }
@@ -284,6 +295,42 @@ app.http('assembliesGetFiles', {
   },
 });
 
+app.http('assembliesUpdateUnitSerial', {
+  methods: ['PATCH'], authLevel: 'anonymous', route: 'assemblies/units/{id}',
+  handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
+    try {
+      if (!requireAuth(req)) return unauthorized();
+      const { assembly_serial_number } = await parseBody(req);
+      const unitId = req.params.id;
+      await execute(
+        'UPDATE assembly_units SET assembly_serial_number = @serial WHERE id = @id',
+        { serial: assembly_serial_number ?? null, id: unitId }
+      );
+      const unit = await queryOne('SELECT * FROM assembly_units WHERE id = @id', { id: unitId });
+      if (!unit) return notFound();
+      return ok(unit);
+    } catch (err) { return serverError(err); }
+  },
+});
+
+app.http('assembliesUpdateComponentSerial', {
+  methods: ['PATCH'], authLevel: 'anonymous', route: 'assemblies/components/{id}',
+  handler: async (req: HttpRequest): Promise<HttpResponseInit> => {
+    try {
+      if (!requireAuth(req)) return unauthorized();
+      const { assembly_item_serial_number } = await parseBody(req);
+      const compId = req.params.id;
+      await execute(
+        'UPDATE assembly_components SET assembly_item_serial_number = @serial WHERE id = @id',
+        { serial: assembly_item_serial_number ?? null, id: compId }
+      );
+      const comp = await queryOne('SELECT * FROM assembly_components WHERE id = @id', { id: compId });
+      if (!comp) return notFound();
+      return ok(comp);
+    } catch (err) { return serverError(err); }
+  },
+});
+
 // Generic list/getById LAST
 app.http('assembliesGetAll', {
   methods: ['GET'], authLevel: 'anonymous', route: 'assemblies',
@@ -295,7 +342,8 @@ app.http('assembliesGetAll', {
                 b.name as bom_name,
                 b.finished_product_id as fp_id,
                 i.item_name as fp_item_name,
-                i.item_id as fp_item_code
+                i.item_id as fp_item_code,
+                i.item_serial_number_tracked as fp_serial_tracked
          FROM assemblies a
          LEFT JOIN boms b ON b.id = a.bom_id
          LEFT JOIN inventory_items i ON i.id = b.finished_product_id
@@ -304,13 +352,18 @@ app.http('assembliesGetAll', {
       for (const a of assemblies) {
         a.boms = a.bom_name ? {
           bom_name: a.bom_name,
+          bom_item_id: a.fp_id,
           inventory_items: a.fp_id ? {
-            id: a.fp_id, item_name: a.fp_item_name, item_id: a.fp_item_code
+            id: a.fp_id,
+            item_name: a.fp_item_name,
+            item_id: a.fp_item_code,
+            item_serial_number_tracked: a.fp_serial_tracked ?? false,
           } : null
         } : null;
         delete a.fp_id;
         delete a.fp_item_name;
         delete a.fp_item_code;
+        delete a.fp_serial_tracked;
       }
       return ok(assemblies);
     } catch (err) { return serverError(err); }

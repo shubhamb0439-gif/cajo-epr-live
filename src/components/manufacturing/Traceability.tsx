@@ -80,10 +80,10 @@ export default function Traceability() {
 
       if (bomData && bomData.bom_components) {
         componentsInfo = bomData.bom_components.map((bi: any) => ({
-          id: bi.inventory_items?.id ?? bi.bom_component_item_id,
-          item_id: bi.inventory_items?.item_id ?? bi.bom_component_item_id,
+          id: bi.inventory_items?.id ?? bi.inventory_item_id ?? bi.item_id,
+          item_id: bi.inventory_items?.item_id ?? bi.item_id ?? bi.inventory_item_id,
           item_name: bi.inventory_items?.item_name ?? 'Unknown',
-          quantity: bi.bom_component_quantity,
+          quantity: bi.bom_component_quantity ?? bi.quantity ?? 1,
           serial_tracked: bi.inventory_items?.item_serial_number_tracked ?? false
         }));
         setComponents(prev => ({ ...prev, [assemblyId]: componentsInfo }));
@@ -140,7 +140,9 @@ export default function Traceability() {
         if (assemblyItemsData.length > 0) {
           const existingSerialsForUnit: Record<string, string[]> = {};
           assemblyItemsData.forEach((ai: any) => {
-            const compId = ai.assembly_component_item_id;
+            // DB column is inventory_item_id; assembly_component_item_id is a legacy alias
+            const compId = ai.inventory_item_id ?? ai.assembly_component_item_id;
+            if (!compId) return;
             if (!existingSerialsForUnit[compId]) {
               existingSerialsForUnit[compId] = [];
             }
@@ -212,59 +214,52 @@ export default function Traceability() {
     setSaving(unit.id);
     try {
       const serialData = unitSerials[unit.id];
+      if (!serialData) throw new Error('Serial data not found for this unit');
 
-      if (!serialData) {
-        throw new Error('Serial data not found for this unit');
-      }
+      // Save product serial number to assembly_units
+      const { error: unitError } = await api.assemblies.updateUnitSerial(unit.id, serialData.productSerial);
+      if (unitError) throw new Error(unitError.message || 'Failed to save product serial');
 
-      // Build component serial data for the activity log
-      const componentsForAssembly = components[assemblyId] || [];
-      const componentSerialEntries: { componentId: string; serialNumbers: string[] }[] = [];
+      // Save component serial numbers to assembly_components
+      const { data: assemblyData, error: fetchError } = await api.assemblies.getById(assemblyId);
+      if (fetchError) throw new Error(fetchError.message || 'Failed to load assembly');
 
-      for (const component of componentsForAssembly) {
+      const assemblyComponents: any[] = (assemblyData as any)?.assembly_components ?? [];
+      const unitComponents = assemblyComponents.filter((ac: any) => ac.assembly_unit_id === unit.id);
+
+      for (const component of (components[assemblyId] || [])) {
         if (!component.serial_tracked) continue;
         const serialNumbers = serialData.componentSerials[component.id] || [];
-        componentSerialEntries.push({
-          componentId: component.id,
-          serialNumbers,
-        });
+        // Match existing assembly_component rows for this unit + item
+        const compRows = unitComponents.filter(
+          (ac: any) => (ac.inventory_item_id ?? ac.assembly_component_item_id) === component.id
+        );
+        for (let i = 0; i < compRows.length; i++) {
+          const { error: compError } = await api.assemblies.updateComponentSerial(
+            compRows[i].id,
+            serialNumbers[i] || ''
+          );
+          if (compError) throw new Error(compError.message || 'Failed to save component serial');
+        }
       }
 
-      // No direct assembly_items update endpoint; record via activity log
-      const { error: logError } = await api.activityLogs.create('SAVE_UNIT_SERIALS', {
+      await api.activityLogs.create('SAVE_UNIT_SERIALS', {
         user_id: userProfile?.id,
         assemblyId,
         unitId: unit.id,
         productSerial: serialData.productSerial,
-        componentSerials: componentSerialEntries,
       });
 
-      if (logError) throw logError;
+      setExistingSerials(prev => ({ ...prev, [unit.id]: { ...serialData.componentSerials } }));
 
-      setExistingSerials(prev => ({
-        ...prev,
-        [unit.id]: { ...serialData.componentSerials }
-      }));
-
-      // Refetch assembly to get updated unit data
-      const { data: assemblyData, error: fetchError } = await api.assemblies.getById(assemblyId);
-
-      if (fetchError) throw fetchError;
-
-      if (assemblyData) {
-        const updatedUnits: AssemblyUnit[] = (assemblyData as any).assembly_units ?? [];
-        const updatedUnit = updatedUnits.find(u => u.id === unit.id);
-        if (updatedUnit) {
-          setUnits(prev => {
-            const currentUnits = prev[assemblyId] || [];
-            return {
-              ...prev,
-              [assemblyId]: currentUnits.map(u =>
-                u.id === unit.id ? { ...updatedUnit, delivered: u.delivered } : u
-              )
-            };
-          });
-        }
+      // Refresh unit list to reflect saved serial
+      const updatedUnits: AssemblyUnit[] = (assemblyData as any).assembly_units ?? [];
+      const updatedUnit = updatedUnits.find(u => u.id === unit.id);
+      if (updatedUnit) {
+        setUnits(prev => {
+          const current = prev[assemblyId] || [];
+          return { ...prev, [assemblyId]: current.map(u => u.id === unit.id ? { ...updatedUnit, delivered: u.delivered } : u) };
+        });
       }
 
       alert('Serial numbers saved successfully!');

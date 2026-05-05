@@ -362,9 +362,19 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
           </>
         )}
 
-        {selectedBOM && bomItems.length > 0 && !assembly && (
+        {selectedBOM && !assembly && (
           <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
-            <h3 className="font-medium text-slate-900 dark:text-white mb-3">Required Components & Vendor Sources</h3>
+            <h3 className="font-medium text-slate-900 dark:text-white mb-3">
+              Required Components & Vendor Sources
+              <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
+                ({bomItems.length})
+              </span>
+            </h3>
+            {bomItems.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                No components required for this BOM.
+              </p>
+            ) : (
             <div className="space-y-3">
               {bomItems.map(item => {
                 const required = item.bom_component_quantity * form.assembly_quantity;
@@ -426,6 +436,7 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
@@ -446,7 +457,7 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
           </button>
           <button
             type="submit"
-            disabled={loading || !selectedBOM || (assembly ? false : (bomItems.length === 0 || Object.values(availableVendors).some(v => v.length === 0)))}
+            disabled={loading || !selectedBOM || (assembly ? false : (bomItems.length > 0 && Object.values(availableVendors).some(v => v.length === 0)))}
             className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg disabled:opacity-50 transition-colors"
           >
             {loading ? (assembly ? 'Updating...' : 'Creating...') : (assembly ? 'Update' : 'Create')}
