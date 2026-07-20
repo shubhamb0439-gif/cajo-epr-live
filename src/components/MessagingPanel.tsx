@@ -3,6 +3,7 @@ import { X, Send, Image, Video, User, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Database } from '../lib/database.types';
 import { api } from '../lib/api';
+import { azureStorage } from '../lib/azure';
 
 type User = Database['public']['Tables']['users']['Row'];
 type Message = Database['public']['Tables']['messages']['Row'];
@@ -154,12 +155,12 @@ export default function MessagingPanel({ isOpen, onClose, onUnreadCountChange, u
       for (const file of files) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${messageId}-${Math.random()}.${fileExt}`;
-        const filePath = `${userProfile?.id}/${fileName}`;
+        const blobName = `${userProfile?.id}/${fileName}`;
 
-      // File upload - configure azureStorage when blob storage is ready
-      // if (uploadError) throw uploadError;
+        const { error: uploadError } = await azureStorage.upload('message-media', blobName, file);
+        if (uploadError) throw new Error(uploadError.message);
 
-      const publicUrl = ""; // configure azureStorage when blob storage is ready
+        const publicUrl = azureStorage.getPublicUrl('message-media', blobName);
         const fileType = file.type.startsWith('image/') ? 'image' : 'video';
 
         await api.message_attachments.create({

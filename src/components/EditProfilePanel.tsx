@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { X, Upload, Trash2, User as UserIcon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
+import { azureStorage } from '../lib/azure';
 
 interface EditProfilePanelProps {
   onClose: () => void;
@@ -10,7 +11,7 @@ interface EditProfilePanelProps {
 export default function EditProfilePanel({ onClose }: EditProfilePanelProps) {
   const { userProfile } = useAuth();
   const [uploading, setUploading] = useState(false);
-  const [profilePicture, setProfilePicture] = useState(userProfile?.profile_pic || '');
+  const [profilePicture, setProfilePicture] = useState(userProfile?.profile_picture_url || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,14 +22,13 @@ export default function EditProfilePanel({ onClose }: EditProfilePanelProps) {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${userProfile.id}-${Date.now()}.${fileExt}`;
-      const filePath = `profile-pictures/${fileName}`;
 
-      // File upload - configure azureStorage when blob storage is ready
-      // if (uploadError) throw uploadError;
+      const { error: uploadError } = await azureStorage.upload('profile-pictures', fileName, file);
+      if (uploadError) throw new Error(uploadError.message);
 
-      const publicUrl = ""; // configure azureStorage when blob storage is ready
+      const publicUrl = azureStorage.getPublicUrl('profile-pictures', fileName);
       const { error: updateError } = await api.users.updateProfile(userProfile.id, {
-        profile_pic: publicUrl,
+        profile_picture_url: publicUrl,
       });
 
       if (updateError) throw updateError;
@@ -51,8 +51,13 @@ export default function EditProfilePanel({ onClose }: EditProfilePanelProps) {
 
     setUploading(true);
     try {
+      if (profilePicture) {
+        const blobName = profilePicture.split('?')[0].split('/').pop()!;
+        await azureStorage.remove('profile-pictures', blobName);
+      }
+
       const { error } = await api.users.updateProfile(userProfile.id, {
-        profile_pic: '',
+        profile_picture_url: '',
       });
 
       if (error) throw error;

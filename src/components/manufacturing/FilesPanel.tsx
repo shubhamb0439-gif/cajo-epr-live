@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { X, Upload, Download, Trash2, File, FileText, Image, FileArchive } from 'lucide-react';
 import { formatDate } from '../../lib/dateUtils';
 import { api } from '../../lib/api';
+import { azureStorage } from '../../lib/azure';
 
 interface FilesPanelProps {
   isOpen: boolean;
@@ -70,17 +71,16 @@ export default function FilesPanel({ isOpen, onClose, unitId, unitNumber, assemb
     setUploading(true);
     try {
       for (const file of Array.from(selectedFiles)) {
-        const fileExt = file.name.split('.').pop();
         const fileName = file.name;
-        const filePath = `${user.id}/${unitId}/${Date.now()}_${fileName}`;
+        const blobName = `${user.id}/${unitId}/${Date.now()}_${fileName}`;
 
-      // File upload - configure azureStorage when blob storage is ready
-      // if (uploadError) throw uploadError;
+        const { error: uploadError } = await azureStorage.upload('assembly-files', blobName, file);
+        if (uploadError) throw new Error(uploadError.message);
 
         const { error: dbError } = await api.assemblies.addFile({
           assembly_unit_id: unitId,
           file_name: fileName,
-          file_path: filePath,
+          file_path: blobName,
           file_size: file.size,
           file_type: file.type || null,
           uploaded_by: user.id,
@@ -108,9 +108,8 @@ export default function FilesPanel({ isOpen, onClose, unitId, unitNumber, assemb
 
   const handleDownload = async (file: AssemblyFile) => {
     try {
-      // File download - storage integration pending; open file path directly for now
       const link = document.createElement('a');
-      link.href = file.file_path;
+      link.href = azureStorage.getPublicUrl('assembly-files', file.file_path);
       link.download = file.file_name;
       document.body.appendChild(link);
       link.click();
@@ -127,7 +126,7 @@ export default function FilesPanel({ isOpen, onClose, unitId, unitNumber, assemb
     if (!confirm(`Are you sure you want to delete "${file.file_name}"?`)) return;
 
     try {
-      // File storage deletion - configure azureStorage when blob storage is ready
+      await azureStorage.remove('assembly-files', file.file_path);
 
       const { error: deleteError } = await api.assemblies.deleteFile(file.id);
       if (deleteError) throw deleteError;
