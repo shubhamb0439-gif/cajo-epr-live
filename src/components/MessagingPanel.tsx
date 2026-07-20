@@ -235,8 +235,8 @@ export default function MessagingPanel({ isOpen, onClose, onUnreadCountChange, u
                       }`}
                     >
                       <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center relative">
-                        {user.profile_pic ? (
-                          <img src={user.profile_pic} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
+                        {user.profile_picture_url ? (
+                          <img src={user.profile_picture_url} alt={user.name} className="w-10 h-10 rounded-full object-cover" />
                         ) : (
                           <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         )}
@@ -271,8 +271,8 @@ export default function MessagingPanel({ isOpen, onClose, onUnreadCountChange, u
                 ← Back
               </button>
               <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                {selectedUser.profile_pic ? (
-                  <img src={selectedUser.profile_pic} alt={selectedUser.name} className="w-8 h-8 rounded-full object-cover" />
+                {selectedUser.profile_picture_url ? (
+                  <img src={selectedUser.profile_picture_url} alt={selectedUser.name} className="w-8 h-8 rounded-full object-cover" />
                 ) : (
                   <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 )}

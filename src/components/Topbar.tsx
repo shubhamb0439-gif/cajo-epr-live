@@ -166,9 +166,9 @@ export default function Topbar({ onMenuClick, onMessageClick, unreadMessageCount
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center space-x-2 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
-              {userProfile?.profile_pic ? (
+              {userProfile?.profile_picture_url ? (
                 <img
-                  src={userProfile.profile_pic}
+                  src={userProfile.profile_picture_url}
                   alt="Profile"
                   className="w-8 h-8 rounded-full object-cover border-2 border-green-600"
                 />

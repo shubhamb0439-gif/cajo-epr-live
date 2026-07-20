@@ -8,6 +8,7 @@ import { azureStorage } from '../../lib/azure';
 interface FilesPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  assemblyId: string;
   unitId: string;
   unitNumber: number;
   assemblyName: string;
@@ -16,15 +17,15 @@ interface FilesPanelProps {
 interface AssemblyFile {
   id: string;
   file_name: string;
-  file_path: string;
+  file_url: string;
   file_size: number;
   file_type: string | null;
   uploaded_by: string;
-  uploaded_at: string;
+  created_at: string;
   uploader_email?: string;
 }
 
-export default function FilesPanel({ isOpen, onClose, unitId, unitNumber, assemblyName }: FilesPanelProps) {
+export default function FilesPanel({ isOpen, onClose, assemblyId, unitId, unitNumber, assemblyName }: FilesPanelProps) {
   const { user, userProfile } = useAuth();
   const [files, setFiles] = useState<AssemblyFile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -78,9 +79,10 @@ export default function FilesPanel({ isOpen, onClose, unitId, unitNumber, assemb
         if (uploadError) throw new Error(uploadError.message);
 
         const { error: dbError } = await api.assemblies.addFile({
+          assembly_id: assemblyId,
           assembly_unit_id: unitId,
           file_name: fileName,
-          file_path: blobName,
+          file_url: blobName,
           file_size: file.size,
           file_type: file.type || null,
           uploaded_by: user.id,
@@ -109,7 +111,7 @@ export default function FilesPanel({ isOpen, onClose, unitId, unitNumber, assemb
   const handleDownload = async (file: AssemblyFile) => {
     try {
       const link = document.createElement('a');
-      link.href = azureStorage.getPublicUrl('assembly-files', file.file_path);
+      link.href = azureStorage.getPublicUrl('assembly-files', file.file_url);
       link.download = file.file_name;
       document.body.appendChild(link);
       link.click();
@@ -126,7 +128,7 @@ export default function FilesPanel({ isOpen, onClose, unitId, unitNumber, assemb
     if (!confirm(`Are you sure you want to delete "${file.file_name}"?`)) return;
 
     try {
-      await azureStorage.remove('assembly-files', file.file_path);
+      await azureStorage.remove('assembly-files', file.file_url);
 
       const { error: deleteError } = await api.assemblies.deleteFile(file.id);
       if (deleteError) throw deleteError;
@@ -235,7 +237,7 @@ export default function FilesPanel({ isOpen, onClose, unitId, unitNumber, assemb
                         <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400">
                           <span>{formatFileSize(file.file_size)}</span>
                           <span>•</span>
-                          <span>{formatDate(file.uploaded_at)}</span>
+                          <span>{formatDate(file.created_at)}</span>
                         </div>
                         <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
                           {file.uploader_email}

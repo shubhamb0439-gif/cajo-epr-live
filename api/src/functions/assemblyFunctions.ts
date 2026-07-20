@@ -287,7 +287,7 @@ app.http('assembliesGetFiles', {
     try {
       if (!requireAuth(req)) return unauthorized();
       const rows = await query(
-        'SELECT * FROM assembly_files WHERE assembly_id = @id ORDER BY created_at DESC',
+        'SELECT * FROM assembly_files WHERE assembly_id = @id OR assembly_unit_id = @id ORDER BY created_at DESC',
         { id: req.params.id }
       );
       return ok(rows);

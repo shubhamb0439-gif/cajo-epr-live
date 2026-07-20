@@ -55,7 +55,7 @@ export default function Traceability() {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const [sendingEmail, setSendingEmail] = useState(false);
   const [showFilesPanel, setShowFilesPanel] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState<{ id: string; number: number; assemblyName: string } | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<{ id: string; assemblyId: string; number: number; assemblyName: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -319,8 +319,8 @@ export default function Traceability() {
     }
   };
 
-  const handleShowFiles = (unitId: string, unitNumber: number, assemblyName: string) => {
-    setSelectedUnit({ id: unitId, number: unitNumber, assemblyName });
+  const handleShowFiles = (assemblyId: string, unitId: string, unitNumber: number, assemblyName: string) => {
+    setSelectedUnit({ id: unitId, assemblyId, number: unitNumber, assemblyName });
     setShowFilesPanel(true);
   };
 
@@ -410,7 +410,7 @@ export default function Traceability() {
                               </div>
                               <div className="flex items-center space-x-2">
                                 <button
-                                  onClick={() => handleShowFiles(unit.id, unit.assembly_unit_number, assembly.assembly_name)}
+                                  onClick={() => handleShowFiles(assembly.id, unit.id, unit.assembly_unit_number, assembly.assembly_name)}
                                   className="flex items-center space-x-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
                                 >
                                   <FolderOpen className="w-4 h-4" />
@@ -575,6 +575,7 @@ export default function Traceability() {
         <FilesPanel
           isOpen={showFilesPanel}
           onClose={() => setShowFilesPanel(false)}
+          assemblyId={selectedUnit.assemblyId}
           unitId={selectedUnit.id}
           unitNumber={selectedUnit.number}
           assemblyName={selectedUnit.assemblyName}

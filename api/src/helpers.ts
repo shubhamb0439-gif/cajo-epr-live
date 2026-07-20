@@ -221,7 +221,7 @@ export const SCHEMAS: Record<string, TableSchema> = {
     readonly: ['created_at'],
   },
   assembly_files: {
-    columns: ['id','assembly_id','file_name','file_url','file_size','file_type','uploaded_by'],
+    columns: ['id','assembly_id','assembly_unit_id','file_name','file_url','file_size','file_type','uploaded_by'],
     readonly: ['created_at'],
   },
   foreign_exchange_rates: {
