@@ -63,7 +63,7 @@ BEGIN
             SELECT 1 FROM bom_components bc
             JOIN inventory_items i ON i.id = bc.inventory_item_id
             WHERE bc.bom_id = @bom_id
-              AND i.quantity_in_stock < (bc.quantity_required * @quantity)
+              AND i.item_stock_current < (bc.quantity_required * @quantity)
         )
         BEGIN
             ROLLBACK;
@@ -76,14 +76,14 @@ BEGIN
         VALUES (@assembly_id, @bom_id, @quantity, @po_number, @created_by);
 
         UPDATE i
-        SET i.quantity_in_stock = i.quantity_in_stock - (bc.quantity_required * @quantity),
+        SET i.item_stock_current = i.item_stock_current - (bc.quantity_required * @quantity),
             i.updated_at = SYSUTCDATETIME()
         FROM inventory_items i
         JOIN bom_components bc ON bc.inventory_item_id = i.id
         WHERE bc.bom_id = @bom_id;
 
         UPDATE inventory_items
-        SET quantity_in_stock = quantity_in_stock + (@bom_output_quantity * @quantity),
+        SET item_stock_current = item_stock_current + (@bom_output_quantity * @quantity),
             updated_at = SYSUTCDATETIME()
         WHERE id = @bom_finished_product_id;
 
@@ -135,7 +135,7 @@ BEGIN
         END
 
         UPDATE i
-        SET i.quantity_in_stock = i.quantity_in_stock + ac.quantity_used,
+        SET i.item_stock_current = i.item_stock_current + ac.quantity_used,
             i.updated_at = SYSUTCDATETIME()
         FROM inventory_items i
         JOIN assembly_components ac ON ac.inventory_item_id = i.id
@@ -149,7 +149,7 @@ BEGIN
         WHERE b.id = @bom_id;
 
         UPDATE inventory_items
-        SET quantity_in_stock = quantity_in_stock - (@output_quantity * @quantity),
+        SET item_stock_current = item_stock_current - (@output_quantity * @quantity),
             updated_at = SYSUTCDATETIME()
         WHERE id = @finished_product_id;
 
@@ -184,8 +184,8 @@ BEGIN
         END
 
         UPDATE i
-        SET i.quantity_in_stock = i.quantity_in_stock - di.quantity_delivered,
-            i.sales_sold = i.sales_sold + CAST(di.quantity_delivered AS INT),
+        SET i.item_stock_current = i.item_stock_current - di.quantity_delivered,
+            i.item_stock_sold = i.item_stock_sold + CAST(di.quantity_delivered AS INT),
             i.updated_at = SYSUTCDATETIME()
         FROM inventory_items i
         JOIN sale_items si ON si.inventory_item_id = i.id
@@ -266,7 +266,7 @@ BEGIN
         WHERE pi.purchase_id = @purchase_id;
 
         UPDATE i
-        SET i.quantity_in_stock = i.quantity_in_stock + t.quantity_received,
+        SET i.item_stock_current = i.item_stock_current + t.quantity_received,
             i.updated_at = SYSUTCDATETIME()
         FROM inventory_items i
         JOIN purchase_items pi ON pi.inventory_item_id = i.id
