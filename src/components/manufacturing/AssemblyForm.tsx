@@ -13,13 +13,6 @@ type BOMItem = Database['public']['Tables']['bom_items']['Row'] & {
   inventory_items: { id: string; item_id: string; item_name: string; item_stock_current: number };
 };
 
-interface VendorStock {
-  vendor_id: string | null;
-  vendor_name: string;
-  source_type: string;
-  stock_available: number | string;
-}
-
 interface PurchaseOrder {
   id: string;
   po_number: string;
@@ -53,8 +46,6 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
   const [form, setForm] = useState({ assembly_name: '', assembly_quantity: 1, bom_id: '', po_number: '' });
   const [hasPO, setHasPO] = useState(false);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [componentVendors, setComponentVendors] = useState<Record<string, string>>({});
-  const [availableVendors, setAvailableVendors] = useState<Record<string, VendorStock[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -75,8 +66,6 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
         setHasPO(false);
         setSelectedBOM(null);
         setBomItems([]);
-        setComponentVendors({});
-        setAvailableVendors({});
       }
     }
   }, [isOpen, assembly]);
@@ -86,12 +75,6 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
       loadBOMItems(form.bom_id);
     }
   }, [selectedBOM, form.bom_id]);
-
-  useEffect(() => {
-    if (bomItems.length > 0) {
-      loadVendorAvailability();
-    }
-  }, [bomItems, form.assembly_quantity]);
 
   const loadBOMs = async () => {
     const { data } = await api.boms.getAll();
@@ -124,61 +107,8 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
     }
 
     if (data && data.bom_components) {
-      console.log('Loaded BOM items:', data.bom_components);
       setBomItems(data.bom_components as BOMItem[]);
-      const initialVendors: Record<string, string> = {};
-      data.bom_components.forEach((item: any) => {
-        initialVendors[item.id] = '';
-      });
-      setComponentVendors(initialVendors);
     }
-  };
-
-  const loadVendorAvailability = async () => {
-    console.log('=== Starting loadVendorAvailability ===');
-    console.log('BOM Items:', bomItems);
-    console.log('Assembly Quantity:', form.assembly_quantity);
-
-    const vendorAvailability: Record<string, VendorStock[]> = {};
-
-    for (const item of bomItems) {
-      const required = item.bom_component_quantity * form.assembly_quantity;
-
-      console.log(`\n--- Loading vendors for ${item.inventory_items.item_name} ---`);
-      console.log('BOM Item ID:', item.id);
-      console.log('Inventory Item ID:', item.inventory_items.id);
-      console.log('Required quantity:', required);
-      console.log('Component quantity:', item.bom_component_quantity);
-
-      const { data, error } = await api.purchases.getStockByVendor();
-
-      if (error) {
-        console.error(`Error loading vendors:`, error);
-        vendorAvailability[item.id] = [];
-      } else if (data) {
-        console.log('Raw data from RPC:', data);
-        console.log('Data length:', data.length);
-
-        const availableVendorsForItem = data.filter((v: VendorStock) => {
-          const stockNum = typeof v.stock_available === 'string'
-            ? parseFloat(v.stock_available)
-            : v.stock_available;
-          const passes = stockNum >= required;
-          console.log(`  ${v.vendor_name}: stock=${stockNum}, required=${required}, passes=${passes}`);
-          return passes;
-        });
-
-        console.log(`Filtered count: ${availableVendorsForItem.length} of ${data.length}`);
-        vendorAvailability[item.id] = availableVendorsForItem;
-      } else {
-        console.log('No data returned');
-        vendorAvailability[item.id] = [];
-      }
-    }
-
-    console.log('\n=== Final vendor availability ===');
-    console.log(JSON.stringify(vendorAvailability, null, 2));
-    setAvailableVendors(vendorAvailability);
   };
 
   const handleBOMChange = (bomId: string) => {
@@ -215,12 +145,6 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
       } finally {
         setLoading(false);
       }
-      return;
-    }
-
-    const missingVendors = bomItems.filter(item => !componentVendors[item.id]);
-    if (missingVendors.length > 0) {
-      setError('Please select a vendor for all components');
       return;
     }
 
@@ -379,8 +303,7 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
               {bomItems.map(item => {
                 const required = item.bom_component_quantity * form.assembly_quantity;
                 const available = item.inventory_items.item_stock_current;
-                const vendorOptions = availableVendors[item.id] || [];
-                const insufficient = vendorOptions.length === 0;
+                const insufficient = available < required;
 
                 return (
                   <div
@@ -389,7 +312,7 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
                       insufficient ? 'bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800' : 'bg-white dark:bg-slate-800'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-slate-900 dark:text-white">
                         {item.inventory_items.item_name}
                       </span>
@@ -400,38 +323,11 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
                         {insufficient && <AlertCircle className="w-4 h-4 text-red-600" />}
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
-                        Vendor Source *
-                      </label>
-                      {insufficient ? (
-                        <div className="px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-300 dark:border-red-800">
-                          No vendors have adequate stock for this quantity
-                        </div>
-                      ) : (
-                        <select
-                          value={componentVendors[item.id] || ''}
-                          onChange={(e) => setComponentVendors({ ...componentVendors, [item.id]: e.target.value })}
-                          required
-                          className="w-full px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-slate-700 dark:text-white"
-                        >
-                          <option value="">Select vendor source</option>
-                          {vendorOptions.map((vendorStock, idx) => {
-                            const stockNum = typeof vendorStock.stock_available === 'string'
-                              ? parseFloat(vendorStock.stock_available)
-                              : vendorStock.stock_available;
-                            return (
-                              <option
-                                key={idx}
-                                value={vendorStock.vendor_id || 'cajo-internal'}
-                              >
-                                {vendorStock.vendor_name} (Available: {stockNum})
-                              </option>
-                            );
-                          })}
-                        </select>
-                      )}
-                    </div>
+                    {insufficient && (
+                      <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                        Insufficient stock for this quantity
+                      </p>
+                    )}
                   </div>
                 );
               })}
@@ -457,7 +353,7 @@ export default function AssemblyForm({ isOpen, assembly, onClose, onSuccess }: A
           </button>
           <button
             type="submit"
-            disabled={loading || !selectedBOM || (assembly ? false : (bomItems.length > 0 && Object.values(availableVendors).some(v => v.length === 0)))}
+            disabled={loading || !selectedBOM || (assembly ? false : bomItems.some(item => item.inventory_items.item_stock_current < item.bom_component_quantity * form.assembly_quantity))}
             className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg disabled:opacity-50 transition-colors"
           >
             {loading ? (assembly ? 'Updating...' : 'Creating...') : (assembly ? 'Update' : 'Create')}
