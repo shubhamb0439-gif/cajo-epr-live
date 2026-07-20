@@ -64,7 +64,7 @@ export default function Sales() {
       setSelectedSale({
         ...saleData,
         customer_id: sale.customer_id,
-        customer_name: sale.customers.customer_name,
+        customer_name: sale.customers?.customer_name,
         sale_items: (saleData as any).sale_items || [],
       });
       setShowEditPanel(true);
@@ -83,7 +83,7 @@ export default function Sales() {
     } else {
       await api.activityLogs.create('DELETE_SALE', {
         saleNumber: sale.sale_number,
-        customerName: sale.customers.customer_name,
+        customerName: sale.customers?.customer_name,
       });
       loadSales();
     }
@@ -114,7 +114,7 @@ export default function Sales() {
 
       await api.activityLogs.create('CREATE_DELIVERY', {
         saleNumber: sale.sale_number,
-        customerName: sale.customers.customer_name,
+        customerName: sale.customers?.customer_name,
       });
     } else {
       const deliveryId = sale.deliveries?.[0]?.id;
@@ -130,7 +130,7 @@ export default function Sales() {
 
       await api.activityLogs.create('DELETE_DELIVERY', {
         saleNumber: sale.sale_number,
-        customerName: sale.customers.customer_name,
+        customerName: sale.customers?.customer_name,
       });
     }
 
@@ -143,17 +143,18 @@ export default function Sales() {
         ...sale.deliveries[0],
         sale_id: sale.id,
         sale_number: sale.sale_number,
-        customer_name: sale.customers.customer_name,
+        customer_name: sale.customers?.customer_name,
       });
       setShowDeliveryPanel(true);
     }
   };
 
   const filteredSales = sales.filter(sale => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch =
-      sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.customers.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.customers.customer_company?.toLowerCase().includes(searchTerm.toLowerCase());
+      (sale.sale_number || '').toLowerCase().includes(term) ||
+      (sale.customers?.customer_name || '').toLowerCase().includes(term) ||
+      (sale.customers?.customer_company || '').toLowerCase().includes(term);
 
     return matchesSearch;
   });
@@ -233,9 +234,9 @@ export default function Sales() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm">
                         <div className="font-medium text-slate-900 dark:text-white">
-                          {sale.customers.customer_name}
+                          {sale.customers?.customer_name}
                         </div>
-                        {sale.customers.customer_company && (
+                        {sale.customers?.customer_company && (
                           <div className="text-slate-500 dark:text-slate-400">
                             {sale.customers.customer_company}
                           </div>
